@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # Casper local test network
+  casper-nctl:
+    image: makesoftware/casper-nctl:v1.5.6
+    container_name: sanctionpay-nctl
+    ports:
+      - "11101:11101"  # Casper RPC
+      - "18101:18101"  # Casper REST
+    environment:
+      - RUST_LOG=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18101/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # SanctionPay Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sanctionpay-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - CSPR_CLOUD_API_KEY=${CSPR_CLOUD_API_KEY}
+      - CASPER_NODE_URL=http://casper-nctl:11101/rpc
+      - CONTRACT_HASH=${CONTRACT_HASH}
+      - WRITER_SECRET_KEY=${WRITER_SECRET_KEY}
+      - X402_FACILITATOR_URL=${X402_FACILITATOR_URL:-https://x402.cspr.cloud/facilitator}
+      - PAYMENT_RECEIVER_ADDRESS=${PAYMENT_RECEIVER_ADDRESS}
+      - API_BASE_URL=http://localhost:8000
+    depends_on:
+      casper-nctl:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend (simple static server)
+  frontend:
+    image: nginx:alpine
+    container_name: sanctionpay-frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+
+networks:
+  default:
+    name: sanctionpay-network

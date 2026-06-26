@@ -1,0 +1,23 @@
+[package]
+name = "sanctionpay-contract"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+odra = { version = "2.8.0", default-features = false }
+
+[dev-dependencies]
+odra = { version = "2.8.0", features = ["test-support"] }
+odra-test = { version = "2.8.0" }
+
+[features]
+default = []
+casper = ["odra/casper"]
+
+[[bin]]
+name = "build_contract"
+path = "src/bin/build_contract.rs"
+required-features = ["casper"]

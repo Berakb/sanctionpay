@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+target/
+*.wasm
+node_modules/
+.DS_Store
+.claude/
+*.db

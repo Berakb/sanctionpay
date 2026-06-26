@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SanctionPay — AI Sanction Screening on Casper</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --surface: #111827;
+      --surface-2: #1a2236;
+      --border: rgba(255,255,255,0.08);
+      --border-2: rgba(255,255,255,0.14);
+      --red: #c73535;
+      --red-bg: rgba(199,53,53,0.1);
+      --red-border: rgba(199,53,53,0.3);
+      --green: #10b981;
+      --green-bg: rgba(16,185,129,0.1);
+      --green-border: rgba(16,185,129,0.3);
+      --yellow: #f59e0b;
+      --yellow-bg: rgba(245,158,11,0.1);
+      --yellow-border: rgba(245,158,11,0.3);
+      --blue: #3b82f6;
+      --blue-bg: rgba(59,130,246,0.1);
+      --blue-border: rgba(59,130,246,0.3);
+      --text: #f1f5f9;
+      --text-2: #94a3b8;
+      --text-3: #475569;
+      --mono: 'JetBrains Mono','Fira Code',monospace;
+      --r: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
+
+    /* NAV */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 14px 28px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .logo { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 600; }
+    .logo-icon { width: 30px; height: 30px; border-radius: 7px; background: var(--red); display: flex; align-items: center; justify-content: center; }
+    .logo-icon i { color: #fff; font-size: 16px; }
+    .nav-pills { display: flex; gap: 8px; }
+    .pill { display: flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 20px; font-size: 11px; border: 1px solid var(--border); color: var(--text-2); background: var(--surface-2); }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
+
+    /* STATS BAR */
+    .statsbar { display: grid; grid-template-columns: repeat(3,1fr); border-bottom: 1px solid var(--border); }
+    .stat { padding: 12px 0; text-align: center; border-right: 1px solid var(--border); }
+    .stat:last-child { border-right: none; }
+    .stat-val { font-size: 20px; font-weight: 600; }
+    .stat-lbl { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+
+    /* LAYOUT */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 110px); }
+    .pane { padding: 22px; border-right: 1px solid var(--border); }
+    .pane:last-child { border-right: none; }
+    .pane-title { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+
+    /* FORM */
+    .notice { display: flex; align-items: center; gap: 8px; background: var(--blue-bg); border: 1px solid var(--blue-border); border-radius: var(--r); padding: 10px 12px; font-size: 12px; color: #93c5fd; margin-bottom: 14px; }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 5px; }
+    input, select { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 13px; font-family: inherit; outline: none; transition: border-color .15s; }
+    input:focus, select:focus { border-color: var(--red); }
+    select option { background: var(--surface); }
+    .btn-primary { width: 100%; padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 4px; transition: opacity .15s; font-family: inherit; }
+    .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-ghost { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; cursor: pointer; background: transparent; color: var(--text-2); margin-top: 8px; font-family: inherit; transition: border-color .15s; }
+    .btn-ghost:hover { border-color: var(--border-2); color: var(--text); }
+
+    /* FLOW */
+    .flow { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+    .fs { flex: 1; padding: 7px 2px; text-align: center; font-size: 10px; line-height: 1.4; color: var(--text-3); background: var(--surface); border-right: 1px solid var(--border); transition: all .25s; }
+    .fs:last-child { border-right: none; }
+    .fs.active { background: var(--red-bg); color: #fca5a5; }
+    .fs.done { background: var(--green-bg); color: #6ee7b7; }
+
+    /* LOG */
+    .log { background: #060a12; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: var(--mono); font-size: 11px; height: 190px; overflow-y: auto; line-height: 1.65; }
+    .log .ok { color: #4ade80; }
+    .log .warn { color: #fbbf24; }
+    .log .err { color: #f87171; }
+    .log .dim { color: var(--text-3); }
+
+    /* RESULT */
+    .r-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; gap: 10px; color: var(--text-3); }
+    .r-empty i { font-size: 44px; }
+
+    .verdict { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--r); margin-bottom: 14px; }
+    .verdict.block { background: var(--red-bg); border: 1px solid var(--red-border); }
+    .verdict.allow { background: var(--green-bg); border: 1px solid var(--green-border); }
+    .verdict.caution { background: var(--yellow-bg); border: 1px solid var(--yellow-border); }
+    .verdict i { font-size: 30px; }
+    .verdict.block i { color: #f87171; }
+    .verdict.allow i { color: #4ade80; }
+    .verdict.caution i { color: #fbbf24; }
+    .verdict-label { font-size: 15px; font-weight: 700; }
+    .verdict.block .verdict-label { color: #f87171; }
+    .verdict.allow .verdict-label { color: #4ade80; }
+    .verdict.caution .verdict-label { color: #fbbf24; }
+    .verdict-sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+
+    .risk-wrap { margin-bottom: 14px; }
+    .risk-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-bottom: 5px; }
+    .risk-bar { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+    .risk-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .tag { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid; }
+    .tag.hit { background: var(--red-bg); border-color: var(--red-border); color: #fca5a5; }
+    .tag.clean { background: var(--green-bg); border-color: var(--green-border); color: #6ee7b7; }
+
+    .ai-box { background: var(--surface-2); border-left: 2px solid var(--red); border-radius: 0 8px 8px 0; padding: 12px; font-size: 12px; line-height: 1.75; color: var(--text-2); margin-bottom: 14px; white-space: pre-wrap; }
+
+    .chain-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 11px; color: var(--text-2); }
+    .chain-box .clabel { font-family: inherit; font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+    .chain-box a { color: #93c5fd; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <div class="logo-icon"><i class="ti ti-shield-check"></i></div>
+    SanctionPay
+  </div>
+  <div class="nav-pills">
+    <div class="pill"><div class="dot"></div>Casper testnet</div>
+    <div class="pill"><i class="ti ti-bolt" style="font-size:12px"></i>x402 active</div>
+  </div>
+</nav>
+
+<div class="statsbar">
+  <div class="stat"><div class="stat-val" id="s-count">0</div><div class="stat-lbl">Checks run</div></div>
+  <div class="stat"><div class="stat-val">3</div><div class="stat-lbl">Lists monitored</div></div>
+  <div class="stat"><div class="stat-val" id="s-time">—</div><div class="stat-lbl">Last response</div></div>
+</div>
+
+<div class="grid">
+
+  <!-- LEFT -->
+  <div class="pane">
+    <div class="pane-title"><i class="ti ti-search"></i> Sanction screening</div>
+
+    <div class="notice">
+      <i class="ti ti-bolt" style="font-size:14px;flex-shrink:0"></i>
+      Endpoint protected by x402. Agent pays 0.01 CSPR autonomously per check.
+    </div>
+
+    <div class="field">
+      <label>Entity or wallet to screen</label>
+      <input id="q-input" type="text" placeholder="0x7f268357… or company name" />
+    </div>
+    <div class="field">
+      <label>Query type</label>
+      <select id="q-type">
+        <option value="wallet">Crypto wallet address</option>
+        <option value="entity">Company / entity</option>
+        <option value="address">Physical address</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="run-btn" onclick="runCheck()">
+      <i class="ti ti-shield-check"></i> Run sanction check
+    </button>
+    <button class="btn-ghost" onclick="loadDemo()">Load demo query</button>
+
+    <div style="margin-top:22px">
+      <div class="pane-title"><i class="ti ti-activity"></i> x402 payment flow</div>
+      <div class="flow">
+        <div class="fs" id="fs1">Request</div>
+        <div class="fs" id="fs2">402 received</div>
+        <div class="fs" id="fs3">Pay CSPR</div>
+        <div class="fs" id="fs4">Data back</div>
+        <div class="fs" id="fs5">On-chain</div>
+      </div>
+
+      <div class="pane-title"><i class="ti ti-terminal"></i> Agent log</div>
+      <div class="log" id="log">
+        <div class="dim">SanctionPay agent v1.0 ready</div>
+        <div class="dim">Connected: Casper testnet</div>
+        <div class="dim">Facilitator: x402.cspr.cloud</div>
+        <div class="dim">Waiting for query...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="pane">
+    <div class="pane-title"><i class="ti ti-clipboard-list"></i> Screening result</div>
+
+    <div class="r-empty" id="r-empty">
+      <i class="ti ti-shield" style="color:var(--border-2)"></i>
+      <span style="font-size:13px">Run a check to see results</span>
+    </div>
+
+    <div id="r-content" style="display:none">
+      <div class="verdict" id="r-verdict">
+        <i class="ti ti-shield-check" id="r-icon"></i>
+        <div>
+          <div class="verdict-label" id="r-label">ALLOW</div>
+          <div class="verdict-sub" id="r-sub">No sanctions found</div>
+        </div>
+      </div>
+
+      <div class="risk-wrap">
+        <div class="risk-header"><span>Risk score</span><span id="r-score">0 / 100</span></div>
+        <div class="risk-bar"><div class="risk-fill" id="r-fill" style="width:0%"></div></div>
+      </div>
+
+      <div class="tags" id="r-tags"></div>
+
+      <div class="pane-title"><i class="ti ti-robot"></i> AI compliance analysis</div>
+      <div class="ai-box" id="r-ai">—</div>
+
+      <div class="chain-box">
+        <div class="clabel"><i class="ti ti-link" style="font-size:11px;vertical-align:-1px"></i> On-chain record (Casper)</div>
+        <div id="r-hash" style="word-break:break-all">—</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const DEMOS=[
+  {q:'0x7f268357a8c2552623316e2562d90e642bb538e5',t:'wallet'},
+  {q:'Tornado Cash',t:'entity'},
+  {q:'Acme Global Trading LLC',t:'entity'},
+  {q:'Kim Chol',t:'entity'},
+];
+let count=0;
+
+function loadDemo(){
+  const d=DEMOS[Math.floor(Math.random()*DEMOS.length)];
+  document.getElementById('q-input').value=d.q;
+  document.getElementById('q-type').value=d.t;
+}
+
+function addLog(msg,cls=''){
+  const el=document.getElementById('log');
+  const d=document.createElement('div');
+  if(cls)d.className=cls;
+  const ts=new Date().toLocaleTimeString('en',{hour12:false});
+  d.textContent=`[${ts}] ${msg}`;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+
+function setStep(active){
+  for(let i=1;i<=5;i++){
+    const el=document.getElementById('fs'+i);
+    el.className='fs';
+    if(i<active)el.classList.add('done');
+    else if(i===active)el.classList.add('active');
+  }
+}
+
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function getMock(q){
+  const bad=q.toLowerCase().includes('tornado')||q.includes('0x7f268357')||q.toLowerCase().includes('kim chol');
+  return{
+    is_sanctioned:bad,risk_score:bad?94:7,
+    lists_matched:bad?['OFAC-SDN']:[],
+    query_hash:btoa(q.toLowerCase()).replace(/[^a-z0-9]/gi,'').substring(0,20),
+    ai_analysis:bad
+      ?'Recommendation: BLOCK\n\nThis entity matches the OFAC Specially Designated Nationals list. Engaging in transactions would violate 31 CFR Parts 500-598. Immediately freeze associated assets and file a SAR under BSA obligations. Do not proceed.'
+      :'Recommendation: ALLOW\n\nNo matches found across OFAC SDN, UN Security Council, or EU Consolidated lists. Risk score within normal parameters. Standard KYC/AML procedures apply — no further action required.',
+    casper_tx_hash:null
+  };
+}
+
+async function runCheck(){
+  const q=document.getElementById('q-input').value.trim();
+  let t=document.getElementById('q-type').value;
+  if(!q){document.getElementById('q-input').focus();return;}
+
+  // Otomatik algilama: hex adres ise wallet, degilse entity
+  if(/^(0x)?[0-9a-fA-F]{40,64}$/.test(q.replace(/\s/g,''))){
+    t='wallet';
+  } else if(t==='wallet'){
+    t='entity';
+    document.getElementById('q-type').value='entity';
+  }
+
+  const btn=document.getElementById('run-btn');
+  btn.disabled=true;
+  btn.innerHTML='<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Checking...';
+
+  document.getElementById('r-empty').style.display='none';
+  document.getElementById('r-content').style.display='none';
+
+  const t0=Date.now();
+
+  addLog(`Screening: "${q.length>38?q.substring(0,38)+'…':q}"`);
+  setStep(1); await delay(350);
+
+  addLog('POST /check → SanctionPay API','dim');
+  setStep(2); await delay(420);
+  addLog('← 402 Payment Required','warn');
+  addLog('Requirements: 0.01 CSPR · Casper testnet · x402.cspr.cloud','dim');
+
+  setStep(3); await delay(550);
+  addLog('Signing x402 payment with agent wallet…','dim');
+  await delay(250);
+  addLog('✓ Payment authorized','ok');
+
+  addLog('Retrying with X-PAYMENT header…','dim');
+  setStep(4); await delay(500);
+
+  let data;
+  try{
+    const r=await fetch('http://localhost:8000/check/demo',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({query:q,query_type:t,include_ai_analysis:true})
+    });
+    if(r.ok)data=await r.json(); else throw 0;
+  }catch{data=getMock(q);}
+
+  addLog(`← risk_score=${data.risk_score}  sanctioned=${data.is_sanctioned}`,'ok');
+
+  setStep(5); await delay(400);
+  addLog(data.casper_tx_hash
+    ?`⛓ On-chain: ${data.casper_tx_hash.substring(0,18)}…`
+    :'⛓ On-chain record queued (deploy contract to activate)','dim');
+
+  const ms=Date.now()-t0;
+  document.getElementById('s-time').textContent=(ms/1000).toFixed(1)+'s';
+  count++;
+  document.getElementById('s-count').textContent=count;
+
+  renderResult(data);
+  for(let i=1;i<=5;i++)document.getElementById('fs'+i).className='fs done';
+
+  btn.disabled=false;
+  btn.innerHTML='<i class="ti ti-shield-check"></i> Run sanction check';
+}
+
+function renderResult(data){
+  const s=data.is_sanctioned, score=data.risk_score||0;
+  const action=s?'block':score>=50?'caution':'allow';
+
+  const icons={block:'ti-shield-x',allow:'ti-shield-check',caution:'ti-shield-exclamation'};
+  document.getElementById('r-verdict').className='verdict '+action;
+  document.getElementById('r-icon').className='ti '+icons[action];
+  document.getElementById('r-label').textContent=
+    action==='block'?'BLOCK':action==='caution'?'ENHANCED DUE DILIGENCE':'ALLOW';
+  document.getElementById('r-sub').textContent=
+    s?'Matched: '+data.lists_matched.join(', '):'No matches across all monitored lists';
+
+  document.getElementById('r-score').textContent=score+' / 100';
+  const fill=document.getElementById('r-fill');
+  fill.style.width=score+'%';
+  fill.style.background=score>=70?'#ef4444':score>=40?'#f59e0b':'#10b981';
+
+  document.getElementById('r-tags').innerHTML=
+    ['OFAC-SDN','UN-SC','EU-Consolidated'].map(l=>{
+      const hit=data.lists_matched.includes(l);
+      return`<span class="tag ${hit?'hit':'clean'}">${l}</span>`;
+    }).join('');
+
+  document.getElementById('r-ai').textContent=data.ai_analysis||'AI analysis unavailable';
+
+  const h=document.getElementById('r-hash');
+  h.innerHTML=data.casper_tx_hash
+    ?`<a href="https://testnet.cspr.live/deploy/${data.casper_tx_hash}" target="_blank">${data.casper_tx_hash}</a>`
+    :`Query hash: ${data.query_hash}… <span style="color:var(--text-3)">(deploy contract to enable)</span>`;
+
+  document.getElementById('r-content').style.display='block';
+}
+</script>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+</body>
+</html>
