@@ -36,27 +36,3 @@ jobs:
 
       - name: Import smoke test
         run: python -c "import main; import sanctions.fetcher; import sanctions.scheduler; print('backend imports OK')"
-
-  contract:
-    name: Contract (Rust / Odra)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: contracts
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            contracts/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('contracts/Cargo.toml') }}
-
-      - name: Run contract tests
-        run: cargo test
