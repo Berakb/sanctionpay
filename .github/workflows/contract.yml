@@ -1,0 +1,44 @@
+name: Contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/**"
+      - ".github/workflows/contract.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "contracts/**"
+      - ".github/workflows/contract.yml"
+
+concurrency:
+  group: contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: cargo test (Odra / Casper)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      # The pinned nightly + wasm target come from contracts/rust-toolchain.toml,
+      # which rustup auto-installs on the first cargo invocation in this dir.
+      - name: Show toolchain (installs pinned nightly)
+        run: rustup show
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            contracts/target
+          key: ${{ runner.os }}-cargo-odra-${{ hashFiles('contracts/Cargo.toml') }}
+
+      - name: Run contract tests
+        run: cargo test
