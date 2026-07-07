@@ -67,7 +67,7 @@ impl SanctionPay {
     ) {
         self.assert_authorized_writer();
 
-        let timestamp = self.env().block_time();
+        let timestamp = self.env().get_block_time();
         let checker = self.env().caller();
 
         let result = SanctionCheckResult {
@@ -148,7 +148,7 @@ mod tests {
     fn test_init() {
         let test_env = odra_test::env();
         let price = U256::from(1_000_000_000u64); // 1 CSPR in motes
-        let contract = SanctionPayHostRef::deploy(&test_env, SanctionPayInitArgs {
+        let contract = SanctionPay::deploy(&test_env, SanctionPayInitArgs {
             price_per_check: price,
         });
         assert_eq!(contract.total_checks(), 0u64);
@@ -158,7 +158,7 @@ mod tests {
     #[test]
     fn test_record_and_get() {
         let test_env = odra_test::env();
-        let mut contract = SanctionPayHostRef::deploy(&test_env, SanctionPayInitArgs {
+        let mut contract = SanctionPay::deploy(&test_env, SanctionPayInitArgs {
             price_per_check: U256::from(1_000_000_000u64),
         });
 
@@ -181,22 +181,20 @@ mod tests {
     #[test]
     fn test_unauthorized_writer() {
         let test_env = odra_test::env();
-        let mut contract = SanctionPayHostRef::deploy(&test_env, SanctionPayInitArgs {
+        let mut contract = SanctionPay::deploy(&test_env, SanctionPayInitArgs {
             price_per_check: U256::from(1_000_000_000u64),
         });
 
         // Switch to a different account
         test_env.set_caller(test_env.get_account(1));
 
-        // Should fail
-        let result = std::panic::catch_unwind(|| {
-            contract.record_check(
-                String::from("hash"),
-                false,
-                0,
-                String::from(""),
-            );
-        });
+        // Should fail — caller is not an authorized writer
+        let result = contract.try_record_check(
+            String::from("hash"),
+            false,
+            0,
+            String::from(""),
+        );
         assert!(result.is_err());
     }
 }
