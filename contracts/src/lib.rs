@@ -1,5 +1,8 @@
 // SanctionPay - On-chain Sanction Check Log Contract
 // Built with Odra Framework for Casper Network
+#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(test), no_main)]
+extern crate alloc;
 
 use odra::prelude::*;
 use odra::casper_types::U256;
