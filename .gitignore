@@ -7,3 +7,11 @@ node_modules/
 .DS_Store
 .claude/
 *.db
+
+# Python virtual environments
+.venv/
+venv/
+
+# Tooling / local artifacts
+.playwright-mcp/
+*.stackdump
