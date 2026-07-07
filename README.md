@@ -60,6 +60,26 @@ docker-compose up
 - API Docs: http://localhost:8000/docs
 - Casper NCTL: http://localhost:11101
 
+### 2b. Or run natively (no Docker)
+
+Fastest way to bring up the backend + UI. Missing keys degrade gracefully
+(AI analysis and on-chain recording simply no-op).
+
+```bash
+# Backend — http://localhost:8000
+cd backend
+python -m venv .venv && . .venv/Scripts/activate   # macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+
+# Frontend — http://localhost:3000 (separate shell)
+cd frontend && python -m http.server 3000
+```
+
+On Windows, `./run-local.ps1` starts both. On startup the backend fetches live
+OFAC (SDN) and UN Security Council lists into a local SQLite DB (~20k records);
+`GET /stats` shows what loaded.
+
 ### 3. Deploy smart contract
 
 ```bash
@@ -83,6 +103,46 @@ cd agent
 pip install httpx anthropic
 python agent.py
 ```
+
+## Testnet Deployment & Verification
+
+On-chain artifacts for the Casper **testnet** deployment. (Replace the
+placeholders once the contract is deployed — see step 3 above.)
+
+| Artifact | Value |
+|---|---|
+| Contract package hash | `_pending deployment_` |
+| Contract hash | `_pending deployment_` |
+| Deploy (init) tx | `_pending deployment_` |
+| Sample `record_check` tx | `_pending deployment_` |
+| Explorer | https://testnet.cspr.live/ |
+
+Set `CONTRACT_HASH` (and the authorized `WRITER_SECRET_KEY`) in `.env` to enable
+the backend's on-chain recording of each screening.
+
+### Testing playbook (for reviewers)
+
+1. **Bring it up** — `docker compose up` (or the native path in step 2b), then
+   open http://localhost:3000.
+2. **Screen a sanctioned entity** — enter `Kim Chol` → expect **BLOCK**, a
+   UN-SC match, and a high risk score. Try a crypto wallet or a clean company
+   name to see **ALLOW**.
+3. **Verify the x402 flow** — call the protected endpoint directly:
+   ```bash
+   # 1) No payment header → 402 Payment Required
+   curl -i -X POST http://localhost:8000/check \
+     -H 'Content-Type: application/json' \
+     -d '{"query":"Kim Chol","query_type":"entity"}'
+
+   # 2) Retry with an X-PAYMENT header → 200 + screening result
+   curl -s -X POST http://localhost:8000/check \
+     -H 'Content-Type: application/json' \
+     -H 'X-PAYMENT: <token>' \
+     -d '{"query":"Kim Chol","query_type":"entity"}'
+   ```
+4. **Inspect loaded data** — `GET http://localhost:8000/stats`.
+5. **Check on-chain record** — once deployed, the response includes
+   `casper_tx_hash`; open it on [cspr.live](https://testnet.cspr.live/).
 
 ## API Reference
 
