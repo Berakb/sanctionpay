@@ -5,10 +5,9 @@ APScheduler kullanır, FastAPI ile birlikte çalışır.
 """
 
 import logging
-import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from sanctions.fetcher import fetch_all_sources, fetch_source, SOURCES, init_db
+from sanctions.fetcher import fetch_all_sources, fetch_source, SOURCES, sanitize_for_log
 import httpx
 
 logger = logging.getLogger("sanctions.scheduler")
@@ -21,7 +20,10 @@ async def update_single_source(source_key: str):
         timeout=90.0
     ) as client:
         count, status = await fetch_source(source_key, client)
-        logger.info(f"Zamanlanmış güncelleme [{source_key}]: {count} kayıt, {status}")
+        logger.info(
+            f"Zamanlanmış güncelleme [{sanitize_for_log(source_key)}]: "
+            f"{count} kayıt, {sanitize_for_log(status)}"
+        )
 
 
 def create_scheduler() -> AsyncIOScheduler:

@@ -12,6 +12,9 @@ on:
       - "contracts/**"
       - ".github/workflows/contract.yml"
 
+permissions:
+  contents: read
+
 concurrency:
   group: contract-${{ github.ref }}
   cancel-in-progress: true

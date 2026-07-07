@@ -19,22 +19,24 @@ Zamanlama (scheduler.py tarafından tetiklenir):
 
 import os
 import csv
-import gzip
 import json
 import sqlite3
-import hashlib
 import logging
 import zipfile
 import asyncio
 import io
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
-from typing import Optional
 import httpx
 
 logger = logging.getLogger("sanctions.fetcher")
 
 DB_PATH = os.getenv("SANCTIONS_DB", "sanctions.db")
+
+
+def sanitize_for_log(value) -> str:
+    """Log enjeksiyonunu önlemek için dış kaynaklı değerlerdeki satır sonu karakterlerini temizler."""
+    return str(value).replace("\r", "").replace("\n", " ")
 
 # ── Resmi İndirme URL'leri ────────────────────────────────────────────────────
 
@@ -484,10 +486,9 @@ def parse_masak_html(content: bytes, source_key: str) -> list[dict]:
     try:
         text = content.decode("utf-8", errors="replace")
 
-        # CSV/Excel link ara (sayfada "Click for the Whole List" gibi bir link olabilir)
+        # CSV link ara (sayfada "Click for the Whole List" gibi bir link olabilir)
         import re
         csv_links = re.findall(r'href=["\']([^"\']*\.csv)["\']', text, re.IGNORECASE)
-        excel_links = re.findall(r'href=["\']([^"\']*\.xlsx?)["\']', text, re.IGNORECASE)
 
         # Direkt tablo parse et (basit HTML tabloları için)
         # <table> içindeki <tr> satırlarını çek
@@ -520,10 +521,13 @@ def parse_masak_html(content: bytes, source_key: str) -> list[dict]:
 
         # Eğer tablo bulunamadıysa ve CSV link varsa logla
         if not records and csv_links:
-            logger.info(f"[{source_key}] HTML'de tablo bulunamadı, CSV link var: {csv_links[0]}")
+            logger.info(
+                f"[{sanitize_for_log(source_key)}] HTML'de tablo bulunamadı, "
+                f"CSV link var: {sanitize_for_log(csv_links[0])}"
+            )
 
     except Exception as e:
-        logger.error(f"[{source_key}] MASAK HTML parse hatası: {e}")
+        logger.error(f"[{sanitize_for_log(source_key)}] MASAK HTML parse hatası: {sanitize_for_log(e)}")
 
     return records
 
@@ -715,7 +719,7 @@ async def fetch_source(source_key: str, client: httpx.AsyncClient) -> tuple[int,
     cfg = SOURCES[source_key]
     t0 = asyncio.get_event_loop().time()
 
-    logger.info(f"[{source_key}] İndiriliyor: {cfg['url']}")
+    logger.info(f"[{sanitize_for_log(source_key)}] İndiriliyor: {sanitize_for_log(cfg['url'])}")
 
     try:
         resp = await client.get(cfg["url"], timeout=60.0, follow_redirects=True)
@@ -754,7 +758,7 @@ async def fetch_source(source_key: str, client: httpx.AsyncClient) -> tuple[int,
                 csv_url = csv_match.group(1)
                 if not csv_url.startswith("http"):
                     csv_url = "https://en.hmb.gov.tr" + csv_url
-                logger.info(f"[{source_key}] CSV link bulundu: {csv_url}")
+                logger.info(f"[{sanitize_for_log(source_key)}] CSV link bulundu: {sanitize_for_log(csv_url)}")
                 csv_resp = await client.get(csv_url, timeout=60.0, follow_redirects=True)
                 if csv_resp.status_code == 200:
                     records = parse_masak_csv(csv_resp.content, source_key)
@@ -777,11 +781,11 @@ async def fetch_source(source_key: str, client: httpx.AsyncClient) -> tuple[int,
         conn.commit()
         conn.close()
 
-        logger.info(f"[{source_key}] ✓ {count} kayıt — {duration:.1f}s")
+        logger.info(f"[{sanitize_for_log(source_key)}] ✓ {count} kayıt — {duration:.1f}s")
         return count, "success"
 
     except Exception as e:
-        logger.error(f"[{source_key}] HATA: {e}")
+        logger.error(f"[{sanitize_for_log(source_key)}] HATA: {sanitize_for_log(e)}")
         conn = sqlite3.connect(DB_PATH)
         conn.execute("""
             INSERT INTO fetch_log (source, fetched_at, record_count, status, error_msg)
